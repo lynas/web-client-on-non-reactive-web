@@ -6,7 +6,9 @@ import org.springframework.context.annotation.Bean
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
+import reactor.core.publisher.Mono
 
 @SpringBootApplication
 class AppRunner {
@@ -14,7 +16,27 @@ class AppRunner {
     @Bean
     fun webClient() : WebClient {
         return WebClient.builder()
+            .filters {
+                it.add(logRequest())
+                it.add(logResponse())
+            }
             .build()
+    }
+}
+
+fun logRequest() : ExchangeFilterFunction {
+    return ExchangeFilterFunction.ofRequestProcessor {
+        println(it.url())
+        Mono.just(it)
+    }
+}
+
+fun logResponse() : ExchangeFilterFunction {
+    return ExchangeFilterFunction.ofResponseProcessor {
+        it.body { inputMessage, context ->
+            println(inputMessage)
+        }
+        Mono.just(it)
     }
 }
 
@@ -27,15 +49,16 @@ class DemoController(val webClient: WebClient) {
 
     @GetMapping("/demo")
     fun demo(): String {
-        val response = webClient.get()
+        webClient.get()
             .uri("https://634beeaad90b984a1e425527.mockapi.io/test")
             .accept(MediaType.APPLICATION_JSON)
             .retrieve()
             .toEntityFlux(Sample::class.java)
+
             .block()
-        println(response?.body)
-        val data = response?.body?.map { it.name }?.blockFirst()
-        println(data)
+            ?.body?.collectList()?.block()?.map {
+                println(it.name)
+            }
         return "demo"
     }
 }
