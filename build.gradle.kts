@@ -24,6 +24,7 @@ dependencies {
 
     implementation("org.springframework:spring-webflux:5.3.23")
     implementation("io.projectreactor.netty:reactor-netty:1.0.24")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
 }
 
